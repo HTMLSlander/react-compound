@@ -1,11 +1,10 @@
-import React from "react";
-import Formula from "./components/formula";
-import Test from "./components/Test";
-
+import Formula from "./components/Formula";
+// import Test from "./components/Test";
 const App = () => {
   return (
     <>
       <Formula />
+      {/* <Test /> */}
     </>
   );
 };

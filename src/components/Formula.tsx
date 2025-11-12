@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
-import Test from "./Test";
+import { useState } from "react";
+import InterestChart from "./InterestChart";
+import { useCurrencyInput } from "../hooks/useCurrencyInput";
 
 interface FormDataProps {
   startingBalance: number;
@@ -8,10 +9,10 @@ interface FormDataProps {
   interestRate: number;
   compoundFrequency: number;
 }
-export let labels: String[] | any = [];
-export let arrYears: String[] | any = [];
 
 const Formula = () => {
+  const [startingBalance, startingBalanceBind] = useCurrencyInput();
+  const [contribution, contributionBind] = useCurrencyInput();
   const [formData, setFormData] = useState<FormDataProps>({
     startingBalance: 0,
     contribution: 0,
@@ -19,9 +20,17 @@ const Formula = () => {
     interestRate: 0,
     compoundFrequency: 12,
   });
-
-  const [results, setResults] = useState<number | string>(0);
+  const [labels, setLabels] = useState<string[] | null>([]);
+  const [arrYears, setArrYears] = useState<number[] | null>([]);
+  const [results, setResults] = useState<number | string | undefined>();
   const [isError, setIsError] = useState<boolean | null>(false);
+
+  // Format numbers to dollar
+
+  const USDollar = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -32,10 +41,12 @@ const Formula = () => {
   };
 
   const handleCompoundInterestFormula = (e: any) => {
-    // A = P(1 + r/n)**nt + PMT((1 + r/n)**nt - 1)(r/n)
+    // A = P(1 + r/n)**nt + PMT((1 + r/n)**nt - 1) / (r/n)
     e.preventDefault();
 
-    let arrData = [];
+    const newLabels: string[] | null = [];
+    const newArrYears: number[] | null = [];
+    let arrData: any[] = [];
     for (let data in formData) {
       arrData.push(+formData[data]);
     }
@@ -47,21 +58,15 @@ const Formula = () => {
       compoundFrequency,
     } = formData;
 
-    const P = startingBalance.toFixed(2);
-    const PMT = contribution.toFixed(2);
+    const P = startingBalance;
+    const PMT = contribution;
     const t = years;
     const rPrcnt = interestRate / 100;
     const n = compoundFrequency;
+    const excerpt = (1 + rPrcnt / n) ** (n * t);
 
-    const finalResult =
-      P * (1 + rPrcnt / n) ** (n * t) +
-      PMT * ((1 + rPrcnt / n) ** (n * t) - 1) * (rPrcnt / n);
+    const finalResult = P * excerpt + (PMT * (excerpt - 1)) / (rPrcnt / n);
 
-    // console.log(
-    //   arrData.filter((data) => {
-    //     Number.isFinite(data) === true;
-    //   }).length !== arrData.length
-    // );
     if (
       !(
         arrData.filter((data) => {
@@ -84,26 +89,32 @@ const Formula = () => {
       let calculate =
         P * (1 + rPrcnt / n) ** (n * year) +
         PMT * ((1 + rPrcnt / n) ** (n * year) - 1) * (rPrcnt / n);
-      arrYears.push(calculate);
-      labels.push(`Year-${year < 10 ? `0${year}` : year}`);
+      newArrYears.push(calculate);
+      newLabels.push(`Year-${year < 10 ? `0${year}` : year}`);
     }
+    setArrYears(newArrYears);
+    setLabels(newLabels);
     console.log(arrYears, labels);
   };
+  const formatStartingBalance = USDollar.format(formData.startingBalance);
+  const formatContribution = USDollar.format(formData.contribution);
+  const formatResults = USDollar.format(+results);
   return (
     <>
       <form
         id="interest-calculator"
-        className="flex flex-col justify-center align-center bg-white p-[20px] rounded-lg shadow-md"
+        className=" max-w-[400px] flex flex-col justify-center align-center bg-white p-[20px] rounded-lg shadow-md"
         onSubmit={handleCompoundInterestFormula}
       >
         <h2 className="font-black text-2xl text-center mb-[20px]">
-          💵 Compound Interest Calculator
+          Welcome to my compound interest Calculator!
         </h2>
         <h2>{isError && `Error message`}</h2>
         <p className="formula">
           Formula:{" "}
           <em>
-            A = P(1 + r/n)<sup>nt</sup> + PMT((1 + r/n)<sup>nt</sup> - 1)(r/n)
+            A = P(1 + r/n)<sup>nt</sup> + PMT((1 + r/n)<sup>nt</sup> - 1) /
+            (r/n)
           </em>
         </p>
         <div className="form-control">
@@ -112,7 +123,7 @@ const Formula = () => {
             type="text"
             id="starting-balance"
             name="startingBalance"
-            onChange={handleChange}
+            {...handleChange(e, setFormData)}
             required
           />
         </div>
@@ -122,7 +133,7 @@ const Formula = () => {
             type="text"
             id="contribution"
             name="contribution"
-            onChange={handleChange}
+            {...contributionBind}
             required
           />
         </div>
@@ -163,9 +174,16 @@ const Formula = () => {
         <button id="calculate-button" type="submit">
           Calculate
         </button>
-        <div id="result">{results}</div>
       </form>
-      <Test />
+      {results && (
+        <main>
+          <section className="results mx-[20px] my-0 mt-[2rem] flex flex-col gap-y-[15px]">
+            <h2 id="result">Your Results</h2>
+            <p>Constant investment will get you to {formatResults}</p>
+            <InterestChart labels={labels} arrYears={arrYears} />
+          </section>
+        </main>
+      )}
     </>
   );
 };
