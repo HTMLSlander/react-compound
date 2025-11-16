@@ -10,13 +10,8 @@ export function useCurrencyInput(initialValue: string = "") {
   const [inputValue, setInputValue] = useState<string>(initialValue);
 
   // Accept only numbers and decimal
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    formData: () => any
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value.replace(/[^\d.]/g, ""));
-    const { name, value } = e.target;
-    formData();
   };
 
   // Format as currency on blur

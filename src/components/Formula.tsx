@@ -1,27 +1,23 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import InterestChart from "./InterestChart";
 import { useCurrencyInput } from "../hooks/useCurrencyInput";
 
 interface FormDataProps {
-  startingBalance: number;
-  contribution: number;
   years: number;
   interestRate: number;
   compoundFrequency: number;
 }
 
 const Formula = () => {
-  const [startingBalance, startingBalanceBind] = useCurrencyInput();
-  const [contribution, contributionBind] = useCurrencyInput();
+  let [startingBalanceBind, setStartingBalanceBind] = useCurrencyInput();
+  let [contributionBind, setContributionBind] = useCurrencyInput();
   const [formData, setFormData] = useState<FormDataProps>({
-    startingBalance: 0,
-    contribution: 0,
     years: 0,
     interestRate: 0,
     compoundFrequency: 12,
   });
-  const [labels, setLabels] = useState<string[] | null>([]);
-  const [arrYears, setArrYears] = useState<number[] | null>([]);
+  const [labels, setLabels] = useState<string[]>([]);
+  const [arrYears, setArrYears] = useState<number[]>([]);
   const [results, setResults] = useState<number | string | undefined>();
   const [isError, setIsError] = useState<boolean | null>(false);
 
@@ -32,7 +28,9 @@ const Formula = () => {
     currency: "USD",
   });
 
-  const handleChange = (e: any) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
@@ -40,26 +38,27 @@ const Formula = () => {
     }));
   };
 
-  const handleCompoundInterestFormula = (e: any) => {
+  const handleCompoundInterestFormula = (e: React.FormEvent) => {
     // A = P(1 + r/n)**nt + PMT((1 + r/n)**nt - 1) / (r/n)
     e.preventDefault();
 
-    const newLabels: string[] | null = [];
-    const newArrYears: number[] | null = [];
-    let arrData: any[] = [];
+    const newLabels: string[] = [];
+    const newArrYears: number[] = [];
+    let arrData: number[] = [];
     for (let data in formData) {
-      arrData.push(+formData[data]);
+      arrData.push(+formData[data as keyof FormDataProps]);
     }
-    const {
-      startingBalance,
-      contribution,
-      years,
-      interestRate,
-      compoundFrequency,
-    } = formData;
 
-    const P = startingBalance;
-    const PMT = contribution;
+    const parseCurrencyToNumber = (currencyString: string): number => {
+      return parseFloat(currencyString.replace(/[$,]/g, "")) || 0;
+    };
+
+    const startingBalanceValue = parseCurrencyToNumber(startingBalanceBind);
+    const contributionValue = parseCurrencyToNumber(contributionBind);
+    const { years, interestRate, compoundFrequency } = formData;
+
+    const P = startingBalanceValue;
+    const PMT = contributionValue;
     const t = years;
     const rPrcnt = interestRate / 100;
     const n = compoundFrequency;
@@ -96,9 +95,7 @@ const Formula = () => {
     setLabels(newLabels);
     console.log(arrYears, labels);
   };
-  const formatStartingBalance = USDollar.format(formData.startingBalance);
-  const formatContribution = USDollar.format(formData.contribution);
-  const formatResults = USDollar.format(+results);
+  const formatResults = USDollar.format(Number(results) || 0);
   return (
     <>
       <form
@@ -123,7 +120,7 @@ const Formula = () => {
             type="text"
             id="starting-balance"
             name="startingBalance"
-            {...handleChange(e, setFormData)}
+            {...setStartingBalanceBind}
             required
           />
         </div>
@@ -133,7 +130,7 @@ const Formula = () => {
             type="text"
             id="contribution"
             name="contribution"
-            {...contributionBind}
+            {...setContributionBind}
             required
           />
         </div>
